@@ -159,6 +159,7 @@ window.addEventListener("load", function () {
         context.stroke();
       }
     }
+    update() {}
   }
   class Egg {
     constructor(game) {
@@ -199,6 +200,66 @@ window.addEventListener("load", function () {
     update() {
       this.spriteX = this.collisionX - this.width * 0.5;
       this.speedY = this.collisionY - this.height * 0.5 - 30;
+      let collisionObjects = [this.game.player, ...this.game.obstacles , ...this.game.enemies];
+      collisionObjects.forEach((object) => {
+        let [isColiding, distance, sumOfRadil, dx, dy] =
+          this.game.checkCollision(this, object);
+        if (isColiding) {
+          const uniit_x = dx / distance;
+          const unit_y = dy / distance;
+          this.collisionX = object.collisionX + (sumOfRadil + 1) * uniit_x;
+          this.collisionY = object.collisionY + (sumOfRadil + 1) * unit_y;
+        }
+      });
+    }
+  }
+  class Enemy {
+    constructor(game) {
+      this.game = game;
+      this.collisionRaduis = 30;
+      this.speedX = Math.random() * 3 * 1;
+      this.image = document.getElementById("toad");
+      this.spriteWidth = 140;
+      this.spriteHeight = 260;
+      this.width = this.spriteWidth;
+      this.height = this.spriteHeight;
+      this.collisionX = this.game.width + Math.random() * this.game.width * 0.5;
+      this.collisionY =
+        this.game.topMargin +
+        Math.random() * (this.game.height - this.game.topMargin);
+      this.spriteX;
+      this.spriteY;
+    }
+    draw(context) {
+      context.drawImage(this.image, this.spriteX, this.spriteY);
+
+      if (this.game.debug) {
+        context.beginPath();
+        context.arc(
+          this.collisionX,
+          this.collisionY,
+          this.collisionRaduis,
+          0,
+          Math.PI * 2
+        );
+        context.save();
+        context.globalAlpha = 0.5;
+        context.fill();
+        context.restore();
+        context.stroke();
+      }
+    }
+    update() {
+      this.spriteX = this.collisionX - this.width * 0.5;
+      this.spriteY = this.collisionY - this.height + 40;
+      this.collisionX -= this.speedX;
+      if (this.spriteX + this.width < 0) {
+        this.collisionX =
+          this.game.width + Math.random() * this.game.width * 0.5;
+        this.collisionY =
+          this.game.topMargin +
+          Math.random() * (this.game.height - this.game.topMargin);
+      }
       let collisionObjects = [this.game.player, ...this.game.obstacles];
       collisionObjects.forEach((object) => {
         let [isColiding, distance, sumOfRadil, dx, dy] =
@@ -225,11 +286,13 @@ window.addEventListener("load", function () {
       this.timer = 0;
       this.interval = 1000 / this.fps;
       this.eggTImer = 0;
-      this.eggInerval = 500;
+      this.eggInerval = 1000;
       this.numOfObstacles = 10;
-      this.maxEgss = 10;
+      this.maxEgss = 20;
       this.obstacles = [];
       this.eggs = [];
+      this.enemies = [];
+      this.gameObjects = [];
       this.mouse = {
         x: this.width * 0.5,
         y: this.height * 0.5,
@@ -261,13 +324,21 @@ window.addEventListener("load", function () {
       if (this.timer > this.interval) {
         //animate next frame
         context.clearRect(0, 0, this.width, this.height);
-        this.obstacles.forEach((obstacle) => obstacle.draw(context));
-        this.eggs.forEach((egg) => {
-          egg.draw(context);
-          egg.update();
+        this.gameObjects = [
+          ...this.eggs,
+          ...this.obstacles,
+          this.player,
+          ...this.enemies,
+        ];
+        //sort by vertical position
+        this.gameObjects.sort((a, b) => {
+          return a.collisionY - b.collisionY;
         });
-        this.player.draw(context);
-        this.player.update();
+        this.gameObjects.forEach((object) => {
+          object.draw(context);
+          object.update();
+        });
+
         this.timer = 0;
       }
       this.timer += deltaTime;
@@ -276,7 +347,6 @@ window.addEventListener("load", function () {
       if (this.eggTImer > this.eggInerval && this.eggs.length < this.maxEgss) {
         this.addEgg();
         this.eggTImer = 0;
-        console.log(this.eggs);
       } else {
         this.eggTImer += deltaTime;
       }
@@ -292,7 +362,14 @@ window.addEventListener("load", function () {
     addEgg() {
       this.eggs.push(new Egg(this));
     }
+    addEnemy() {
+      this.enemies.push(new Enemy(this));
+    }
     init() {
+      //Create enemies
+      for (let i = 0; i < 3; i++) {
+        this.addEnemy();
+      }
       // circle Packing - an arrangement of circles inside a given boundary such that no two overlap and some (or all) of them are mutually tangent.
       let attempts = 0;
       while (this.obstacles.length < this.numOfObstacles && attempts < 500) {
