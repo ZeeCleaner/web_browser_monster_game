@@ -2,6 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: "Bangers", system-ui;
 }
 body {
   background-color: black;
@@ -22,6 +23,11 @@ body {
   pointer-events: none;
 }
 
-#obstacles, #bull, #egg, #toad , #larva {
+#obstacles,
+#bull,
+#egg,
+#toad,
+#larva,
+#toads {
   display: none;
 }
